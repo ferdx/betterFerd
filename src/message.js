@@ -21,7 +21,10 @@ Message.prototype.template = function(schema) {
 };
 
 Message.prototype.text = function(params) {
-  this.json.text = this.render(params);
+  if (typeof params === 'object' && params !== null) {
+    this.json.text = this.render(params);
+  } else if (typeof params === 'string' || typeof params === 'number')
+    this.json.text = '' + params;
   return this;
 };
 
