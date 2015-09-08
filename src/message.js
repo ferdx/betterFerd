@@ -6,7 +6,7 @@ _.templateSettings = { interpolate: /\{\{(.+?)\}\}/g };
 var Message = function(json) {
   this.json = null;
   this.render = null;
-  this.attachments = [];
+  this._attachments = [];
   this.defaults = {
     persona: {
       name: 'Ferd',
@@ -35,7 +35,7 @@ Message.prototype.as = function(persona) {
 };
 
 Message.prototype.attachments = function() {
-  return this.attachments;
+  return this._attachments;
 };
 
 Message.prototype.attach = function(attachment) {
