@@ -1,11 +1,16 @@
 {
   "name": "ferd",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "A modular slackbot",
+  "main": "index.js",
   "author": "Timothy Quach",
   "license": "ISC",
   "dependencies": {
     "rx": "^3.1.2",
     "slack-client": "^1.4.1"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-jsdoc": "^0.6.8"
   }
 }
