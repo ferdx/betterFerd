@@ -108,39 +108,62 @@ Ferd.prototype.respond = function(capture, callback) {
 
 /**
  * Allows multi-user sessions
- * @param  {regex}   hello    regex triggered to register user in session
- * @param  {regex}   goodbye  regex triggered to kick user out of session
- * @param  {Function} callback callback for all user messages in session
- * @param  {object}   options
- * @return {disposable}            garbage can
+ * @param  {regex}   summon   RegEx triggered to register user in session
+ * @param  {regex}   dismiss  RegEx triggered to terminate a session
+ * @param  {object}  handlers callbacks for interacting with messages
+ * @return {disposable}       garbage can
  */
-Ferd.prototype.session = function(hello, goodbye, callback, options) {
+Ferd.prototype.session = function(summonRE, dismissRE, handlers) {
   var self = this;
   var users = {};
-  var helloCb =  (options && options.hello ) || ((res) => {res.send("hello " + res.getMessageSender().name) });
-  var goodbyeCb = (options && options.goodbye) || ((res) => {res.send("goodbye " + res.getMessageSender().name)});
+  var defaults = {
+    salute: function(res, phrase) {
+      var name = res.getMessageSender().name || 'Buddy';
+      res.send(phrase + ', ' + name + '!');
+    },
+    hello: function(res) {
+      this.salute(res, 'Hello');
+    },
+    chat: function(res) {
+      this.salute(res, 'Whatever');
+    },
+    bye: function(res) {
+      this.salute(res, 'Bye');
+    }
+  };
 
-  var goodbyeListener = this.listen(goodbye, (res) => {
+  handlers = handlers || {};
+  handlers.greeting = handlers.greeting || defaults.hello;
+  handlers.converse = handlers.converse || defaults.chat;
+  handlers.farewell = handlers.farewell || defaults.bye;
+
+  var cycle = {
+    birth: null,
+    life: null,
+    death: null
+  };
+  
+  cycle.death = self.listen(dismissRE, function(res) {
     var userId = res.incomingMessage.user;
     users[userId] = null;
-    goodbyeCb(res);
+    handlers.farewell(res);
   });
 
-  var callbackListener = this.hear(m => {
-    return !!users[m.user];
-  }, /.*/, callback);
+  cycle.life = this.hear(function(message) {
+    return !!users[message.user];
+  }, /.*/, handlers.converse);
 
-  var helloListener = this.listen(hello, (res) => {
-    var userId = res.incomingMessage.user;
-    var username = res.getMessageSender().name;
+  cycle.birth = this.listen(summonRE, function(res) {
+    var userId = res.incomingMessage.user,
+        username = res.getMessageSender().name;
     users[userId] = username;
-    helloCb(res);
+    handlers.greeting(res);
   });
 
-  var disposable =  rx.Disposable.create(() => {
-    callbackListener.dispose();
-    helloListener.dispose();
-    goodbyeListener.dispose();
+  var disposable = rx.Disposable.create(function() {
+    cycle.birth.dispose();
+    cycle.life.dispose();
+    cycle.death.dispose();
   });
 
   return disposable;
